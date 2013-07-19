@@ -1,0 +1,50 @@
+(ns com.schach.chess)
+
+(defn create-square [color]
+    {:color color :piece nil})
+    
+(defn create-rank [index width]
+    (take width 
+        (map #(create-square (if (zero? (mod % 2)) :dark :light))
+            (iterate inc (mod index 2)))))
+
+(defn create-board
+  "Creates a empty square chess board of the specified width and height."
+  [width]
+  (map #(create-rank % width) (range 1 (inc width))))
+  
+(defn char-to-int [char-value base-char]
+    (inc (- (int char-value) (int base-char))))
+
+(defn from-algebric-to-coordinates [algebric-position]
+    (let [file-char (first algebric-position) rank-char (last algebric-position)
+        file-base-char \1 rank-base-char \a]
+        {:file (char-to-int file-char file-base-char) :rank (char-to-int rank-char rank-base-char)}))
+
+(defn new-piece [name max-number initial-position]
+    {:name name :max-number max-number :initial-position initial-position})
+    
+;(define chess-pieces 
+;    { "K" (new-piece "king" 1, "Q" :queen "R" :rook "B" :bishop "N" :knight "P" :pawn}
+        
+;(defn populate-board [board pieces]
+;    (reduce (fn [board piece]
+;            (assoc-in board 
+ 
+(comment    
+(defn populate-board
+  "Turns :on each of the cells specified as [y, x] coordinates."
+  [board living-cells]
+  (reduce (fn [board coordinates]
+            (assoc-in board coordinates :on))
+          board
+          living-cells))
+
+(def glider (populate (empty-board 6 6) #{[2 0] [2 1] [2 2] [1 2] [0 1]}))
+
+
+(defn foo
+  "I don't do a whole lot."
+  [x]
+  (println x "Hello, World!"))
+)

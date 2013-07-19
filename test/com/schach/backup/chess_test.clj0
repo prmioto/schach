@@ -1,0 +1,59 @@
+(ns com.schach.chess-test
+  (:require [clojure.test :refer :all]
+            [com.schach.chess :refer :all]))
+
+(deftest test-char-to-int
+    (testing "Tests conversion from char to integer."
+        (is 1 (char-to-int \1 \1))
+        (is 8 (char-to-int \8 \1))
+        (is 1 (char-to-int \a \a))
+        (is 8 (char-to-int \h \a))))
+
+(deftest test-convertion-from-algebric-to-coordinates
+    (testing "Tests conversion from algebric chess notation to coordinates."
+        (is {:file 1 :rank 1} (from-algebric-to-coordinates "a1"))
+        (is {:file 8 :rank 8} (from-algebric-to-coordinates "h8"))))
+            
+(deftest test-odd-ranks
+  (testing "Odd ranks should have the first square dark and the last light."
+    (testing "With first odd rank."
+        (let [odd-rank (create-rank 1 8)]
+        (println odd-rank)
+            (is :dark (:color (first odd-rank)))
+            (is :light (:color (last odd-rank)))))
+    (testing "With last odd rank."
+        (let [odd-rank (create-rank 7 8)]
+            (is :dark (:color (first odd-rank)))
+            (is :light (:color (last odd-rank)))))))
+    
+(deftest test-even-ranks
+  (testing "Even ranks should have the first square light and the last dark."
+    (testing "With first even rank."
+        (let [even-rank (create-rank 2 8)]
+        (println even-rank)
+            (is :light (:color (first even-rank)))
+            (is :dark (:color (last even-rank)))))
+    (testing "With last even rank."
+        (let [even-rank (create-rank 8 8)]
+            (is :light (:color (first even-rank)))
+            (is :dark (:color (last even-rank)))))))
+
+(deftest test-complete-board
+    (testing "Assures that the board is complete and the colors are correctly assigned."
+        (let [width 8 board (create-board width)]
+            (testing "Checks if the number of files and ranks are correct."
+                (is width (count board))
+                (is width (count (first board))))
+            (testing "Checks if an odd rank begins with dark color and ends with light color."  
+                (let [first-rank (nth board 0)]
+                    (is :dark (:color (first first-rank)))
+                    (is :light (:color (last first-rank)))))
+            (testing "Checks if an even rank begins with light color and ends with dark color."  
+                (let [first-rank (nth board 1)]
+                    (is :light (:color (first first-rank)))
+                    (is :dark (:color (last first-rank))))))))
+                    
+(deftest test-populated-board
+    (testing "Assures that the board is correctly populated."
+        (let [width 8 board (create-board width)]
+        (is 1 1))))
