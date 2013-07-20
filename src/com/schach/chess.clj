@@ -21,8 +21,8 @@
 
 (defn create-board
   "Creates a empty square chess board of the specified width and height."
-  [width]
-  (vec (map #(create-rank % width) (range 0 width))))
+  [height width]
+  (vec (map #(create-rank % width) (range 0 height))))
     
 (def chess-piece-names
     {\K :king \Q :queen \R :rook \B :bishop \N :knight \P :pawn})
@@ -55,8 +55,8 @@
 
 (defn setup-chess-board []
     (let [
-        chess-width 8 
-        board (create-board chess-width)]
+        height 8 width 8
+        board (create-board height width)]
         (populate-board board 
             ["wRa1" "wNb1" "wBc1" "wQd1" "wKe1" "wBf1" "wNg1" "wRh1"
              "wPa2" "wPb2" "wPc2" "wPd2" "wPe2" "wPf2" "wPg2" "wPh2"
@@ -76,46 +76,46 @@
         to-coordinates (from-algebric-to-coordinates to-algebric-position)]
      (move-piece-by-coordinates board from-coordinates to-coordinates)))
 
-(defmulti get-possible-moves (fn [piece coordinates width] (:name piece)))
-(defmethod get-possible-moves :king [piece coordinates width]
+(defmulti get-possible-moves (fn [piece coordinates height width] (:name piece)))
+(defmethod get-possible-moves :king [piece coordinates height width]
     (let [[x y] coordinates]
-        (filter (fn [[x y]] (and (>= x 0) (>= y 0) (< x width) (< y width)))
+        (filter (fn [[x y]] (and (>= x 0) (>= y 0) (< x width) (< y height)))
             (for [dx [-1 0 1] dy [-1 0 1] :when (not= 0 dx dy)] 
                 [(+ dx x) (+ dy y)]))))
-(defmethod get-possible-moves :queen [piece coordinates width]
+(defmethod get-possible-moves :queen [piece coordinates height width]
     (let [[x y] coordinates]
         (reduce concat
             (for [dx [-1 0 1] dy [-1 0 1] :when (not= 0 dx dy)]
                 (loop [x (+ dx x) y (+ dy y) coll []]
-                    (if (or (< x 0) (< y 0) (>= x width) (>= y width))
+                    (if (or (< x 0) (< y 0) (>= x width) (>= y height))
                         coll
                         (recur (+ dx x) (+ dy y) (conj coll [x y]))))))))                
-(defmethod get-possible-moves :bishop [piece coordinates width]
+(defmethod get-possible-moves :bishop [piece coordinates height width]
     (let [[x y] coordinates]
         (reduce concat
             (for [dx [-1 0 1] dy [-1 0 1] :when (and (not= 0 dx) (not= 0 dy))]
                 (loop [x (+ dx x) y (+ dy y) coll []]
-                    (if (or (< x 0) (< y 0) (>= x width) (>= y width))
+                    (if (or (< x 0) (< y 0) (>= x width) (>= y height))
                         coll
                         (recur (+ dx x) (+ dy y) (conj coll [x y]))))))))    
-(defmethod get-possible-moves :rook [piece coordinates width]
+(defmethod get-possible-moves :rook [piece coordinates height width]
     (let [[x y] coordinates]
         (reduce concat
             (for [dx [-1 0 1] dy [-1 0 1] :when (and (not= 0 dx dy) (or (= 0 dx) (= 0 dy)))]
                 (loop [x (+ dx x) y (+ dy y) coll []]
-                    (if (or (< x 0) (< y 0) (>= x width) (>= y width))
+                    (if (or (< x 0) (< y 0) (>= x width) (>= y height))
                         coll
                         (recur (+ dx x) (+ dy y) (conj coll [x y]))))))))
-(defmethod get-possible-moves :pawn [piece coordinates width]
+(defmethod get-possible-moves :pawn [piece coordinates height width]
     (let [[x y] coordinates]
-        (filter (fn [[x y]] (and (>= x 0) (>= y 0) (< x width) (< y width)))
+        (filter (fn [[x y]] (and (>= x 0) (>= y 0) (< x width) (< y height)))
             (conj
                 (for [dx [-1 0 1]] 
                     [(+ dx x) (+ 1 y)])
                 [x (+ 2 y)]))))
-(defmethod get-possible-moves :knight [piece coordinates width]
+(defmethod get-possible-moves :knight [piece coordinates height width]
     (let [[x y] coordinates]
-        (filter (fn [[x y]] (and (>= x 0) (>= y 0) (< x width) (< y width)))
+        (filter (fn [[x y]] (and (>= x 0) (>= y 0) (< x width) (< y height)))
             (for [dx [-2 -1 1 2] dy [-2 -1 1 2] :when (not= (abs dx) (abs dy))]
                     [(+ dx x) (+ dy y)]))))
                 
