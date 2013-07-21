@@ -97,16 +97,18 @@
                 
 (deftest test-move-piece
     (testing "Checks if a piece is moved to the specified location."
-        (let [
-            board (setup-chess-board)
-            from-position "a1"
-            to-position "c4"
-            from-coordinates (from-algebric-to-coordinates from-position)
-            to-coordinates (from-algebric-to-coordinates to-position)
-            piece-to-move ((get-in board from-coordinates) :piece)
-            new-board (move-piece board from-position to-position)]
+        (let 
+            [board (setup-chess-board)
+             from-position "a1"
+             to-position "c4"
+             from-coordinates (from-algebric-to-coordinates from-position)
+             to-coordinates (from-algebric-to-coordinates to-position)
+             piece-to-move ((get-in board from-coordinates) :piece)
+             new-board (move-piece board from-position to-position)
+             moved-piece ((get-in new-board to-coordinates) :piece)]
         (print-board new-board)
-        (is (= piece-to-move ((get-in new-board to-coordinates) :piece))))))
+        (is (= piece-to-move (assoc moved-piece :number-of-moves 0)))
+        (is (= 1 (moved-piece :number-of-moves))))))
         
 (deftest test-possible-moves
     (let [height 8 width 8]
@@ -165,9 +167,11 @@
         (testing "Checks the possible moves for the pawn from a given coordinates."
             (let [pawn (create-piece :pawn :white)]
                 (testing "Checks for possible moves for a pawn in the left-bottom corner."
-                    (is (= '([0 2] [0 1] [1 1]) (get-possible-moves pawn [0 0] height width))))
+                    (is (= '([0 1] [1 1]) (get-possible-moves pawn [0 0] height width))))
+                (testing "Checks for possible moves for a pawn in the second rank."
+                    (is (= '([2 2] [3 2] [3 3] [4 2]) (get-possible-moves pawn [3 1] height width))))
                 (testing "Checks for possible moves for a pawn in the board center."
-                    (is (= '([4 6] [3 5] [4 5] [5 5]) (get-possible-moves pawn [4 4] height width))))))
+                    (is (= '([3 5] [4 5] [5 5]) (get-possible-moves pawn [4 4] height width))))))
         (testing "Checks the possible moves for the knight from a given coordinates."
             (let [knight (create-piece :knight :white)]
                 (testing "Checks for possible moves for a knight in the left-bottom corner."

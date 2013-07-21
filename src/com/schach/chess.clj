@@ -5,9 +5,11 @@
 (defn char-to-int [char-value base-char]
     (- (int char-value) (int base-char)))
 
+(def file-base-char \a)
+(def rank-base-char \1)
+    
 (defn from-algebric-to-coordinates [algebric-position]
-    (let [file-char (first algebric-position) rank-char (last algebric-position)
-        file-base-char \a rank-base-char \1]
+    (let [[file-char rank-char] (vec algebric-position)]
         ;(println "x" file-char rank-char)
         [(char-to-int rank-char rank-base-char) (char-to-int file-char file-base-char)]))
 
@@ -31,7 +33,7 @@
     {\w :white \b :black})
 
 (defn create-piece [name color]
-    {:name name :color color :has-moved false})
+    {:name name :color color :number-of-moves 0})
     
 (defn replace-piece [board coordinates new-piece]
     (let [square (get-in board coordinates)]
@@ -64,11 +66,15 @@
              "bPa7" "bPb7" "bPc7" "bPd7" "bPe7" "bPf7" "bPg7" "bPh7"])))
  
 (defn move-piece-by-coordinates [board from-coordinates to-coordinates]
-    (let [
-        from-square (get-in board from-coordinates)
-        to-square (get-in board to-coordinates)
-        piece (from-square :piece)]
-        (assoc-in (assoc-in board from-coordinates (dissoc from-square :piece)) to-coordinates (assoc to-square :piece piece))))
+    (let 
+        [from-square (get-in board from-coordinates)
+         to-square (get-in board to-coordinates)
+         piece (from-square :piece)
+         number-of-moves (piece :number-of-moves)
+         updated-piece (assoc (dissoc piece :number-of-moves) :number-of-moves (inc number-of-moves))
+         updated-from-square (dissoc from-square :piece)
+         updated-to-square (assoc to-square :piece updated-piece)]
+        (assoc-in (assoc-in board from-coordinates updated-from-square) to-coordinates updated-to-square)))
         
 (defn move-piece [board from-algebric-position to-algebric-position]
      (let [
@@ -109,10 +115,8 @@
 (defmethod get-possible-moves :pawn [piece coordinates height width]
     (let [[x y] coordinates]
         (filter (fn [[x y]] (and (>= x 0) (>= y 0) (< x width) (< y height)))
-            (conj
-                (for [dx [-1 0 1]] 
-                    [(+ dx x) (+ 1 y)])
-                [x (+ 2 y)]))))
+                (for [dx [-1 0 1] dy [1 2] :when (or (not= dy 2) (and (zero? dx) (= y 1)))] 
+                    [(+ dx x) (+ dy y)]))))
 (defmethod get-possible-moves :knight [piece coordinates height width]
     (let [[x y] coordinates]
         (filter (fn [[x y]] (and (>= x 0) (>= y 0) (< x width) (< y height)))
@@ -124,21 +128,20 @@
         (reduce (fn [rank-str rank] 
             (str rank-str
                 (reduce (fn [square-str square] 
-                    (let [
-                        square-color (square :colord)
-                        is-dark (= square-color :dark)
-                        piece-name (-> square :piece :name)
-                        piece-color (-> square :piece :color)
-                        is-empty (nil? piece-color)
-                        is-black (= piece-color :black)]
-                        ;(println (-> square :piece :name)
+                    (let 
+                        [is-dark (= (square :color) :dark)
+                         piece (square :piece)
+                         is-empty (nil? piece)
+                         is-black (= (if (true? is-empty) :none (piece :color)) :black)
+                         piece-name (if (true? is-empty) "" (str (piece :name)))]
                         (str square-str 
-                            (format "%s%s%3.3s%s%s" 
+                            (format "%s%2.2s%3.3s%s" 
                                 (if (true? is-dark) "[" "(") 
-                                (if (true? is-empty) " " (if (true? is-black) "+" "_")) 
-                                (if (nil? piece-name) "" piece-name)
-                                (if (true? is-empty) " " (if (true? is-black) "+" "_")) 
+                                ;(if (true? is-empty) " " (if (true? is-black) "+" "_")) 
+                                (if (true? is-empty) "" (piece :number-of-moves))
+                                (if (true? is-empty) "" (if (true? is-black) (.toUpperCase piece-name) (.toLowerCase piece-name)))
+                                ;(if (true? is-empty) " " (if (true? is-black) "+" "_")) 
                                 (if (true? is-dark) "]" ")"))
-                           "|"))) 
+                           "|")))    
                     "" rank) "\n")) 
             "" (reverse board))))
