@@ -122,7 +122,60 @@
         (filter (fn [[x y]] (and (>= x 0) (>= y 0) (< x width) (< y height)))
             (for [dx [-2 -1 1 2] dy [-2 -1 1 2] :when (not= (abs dx) (abs dy))]
                     [(+ dx x) (+ dy y)]))))
-                
+
+(defn is-opponent? [piece-to-move piece-to-check]
+    (not= (:color piece-to-move) (:color piece-to-check)))
+
+(defn get-square-occupant-type [piece-to-move to-square] 
+    (let [piece-to-check (:piece to-square)]
+        (cond
+            (nil? piece-to-check) :empty-square
+            (is-opponent? piece-to-move piece-to-check) :opponent
+            (true? true) :teammate)))
+  
+(defn walk-by-steps [board piece-to-move from-coordinates step is-single-step]
+    (let [height (count board) width (count (board 0))]
+        (loop [to-coordinates (vec (map + from-coordinates step)) moves [] opponent-found false number-of-steps 0]
+           (let [occupant-type (get-square-occupant-type piece-to-move (get-in board to-coordinates))]
+                ;(println to-coordinates moves opponent-found occupant-type number-of-steps)
+                (if (or 
+                        (and is-single-step (= 1 number-of-steps))
+                        (true? (some #(< % 0) to-coordinates))
+                        (true? (some true? (map >= to-coordinates [height width])))
+                        (= :teammate occupant-type)
+                        (true? opponent-found))
+                    moves
+                    (recur 
+                        (vec (map + to-coordinates step))
+                        (conj moves to-coordinates) 
+                        (= :opponent occupant-type) 
+                        (inc number-of-steps)))))))
+
+(defn get-moves [board from-coordinates possible-steps is-single-step]
+    (let 
+        [piece-to-move (:piece (get-in board from-coordinates))
+         no-piece-to-move (nil? piece-to-move)]
+        ;(println from-coordinates piece-to-move possible-steps)
+        (if (true? no-piece-to-move)
+            []
+            (vec (reduce
+                (fn [moves step] 
+                    (println moves step)
+                    (into moves (walk-by-steps board piece-to-move from-coordinates step true))) 
+                []
+                possible-steps)))))                        
+                        
+(defmulti get-valid-moves (fn [board from-coordinates] (-> (get-in board from-coordinates) :piece :name)))
+(defmethod get-valid-moves :default [board from-coordinates]
+    (println :default)
+    ())
+(defmethod get-valid-moves :king [board from-coordinates]
+    (println :king)
+    (let 
+       [king-possible-steps (for [dx [-1 0 1] dy [-1 0 1] :when (not= 0 dx dy)] [dy dx])
+        is-single-step true]
+        (get-moves board from-coordinates king-possible-steps is-single-step)))
+                    
 (defn print-board [board]
     (println
         (reduce (fn [rank-str rank] 

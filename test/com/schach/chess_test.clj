@@ -183,3 +183,59 @@
                             [5 2] [5 6] 
                             [6 3] [6 5]
                         ) (get-possible-moves knight [4 4] height width))))))))
+                        
+(deftest test-is-opponent
+    (testing "Assures that two pieces of the same color are not opponents."
+        (is (false? (is-opponent? {:name :king :color :white} {:name :queen :color :white}))))
+    (testing "Assures that two pieces of the distinct colors are opponents."
+        (is (is-opponent? {:name :king :color :white} {:name :bishop :color :black}))))
+
+(deftest test-get-square-ocuppant-type
+    (testing "Assures that the square is empty."
+        (is (= :empty-square 
+            (get-square-occupant-type 
+                {:name :king :color :white} 
+                {:color :dark :piece nil}))))
+    (testing "Assures that the square has a teammate."
+        (is (= :teammate 
+            (get-square-occupant-type
+                {:name :king :color :white} 
+                {:color :dark :piece {:name :pawn :color :white}}))))
+    (testing "Assures that the square has a opponent."
+        (is (= :opponent 
+            (get-square-occupant-type 
+                {:name :king :color :white} 
+                {:color :dark :piece {:name :pawn :color :black}})))))
+                    
+(deftest test-walk-by-steps
+    (let [chess-board (setup-chess-board)]
+        (testing "Checks the steps for a king walking to a specified direction from its actual position."
+            (let [king {:name :king :color :white} is-single-step true]
+                (testing "Checks the steps for a locked king walking to its right direction."
+                    (is (= [] (walk-by-steps chess-board king [0 4] [0 1] is-single-step))))
+                (testing "Checks the steps for a free king walking to its right direction."
+                    (is (= [[4 5]] (walk-by-steps chess-board king [4 4] [0 1] is-single-step))))
+                (testing "Checks the steps for a king walking in direction to an opponent."
+                    (is (= [[6 4]] (walk-by-steps chess-board king [5 4] [1 0] is-single-step))))
+                (testing "Checks for possible moves for a free king walking to its right direction outside the board."
+                    (is (= [] (walk-by-steps chess-board king [4 7] [0 1] is-single-step))))))
+        (testing "Checks the steps for a queen walking to a specified direction from its actual position."
+            (let [queen {:name :queen :color :white} is-single-step false]
+                (testing "Checks the steps for a locked queen walking to its right direction."
+                    (is (= [] (walk-by-steps chess-board queen [0 3] [0 1] is-single-step))))
+                (testing "Checks the steps for a free queen walking to its right direction."
+                    (is (= [[4 4] [4 5] [4 6] [4 7]] (walk-by-steps chess-board queen [4 3] [0 1] is-single-step))))
+                (testing "Checks the steps for a queen walking in direction to an opponent."
+                    (is (= [[3 3] [4 3] [5 3] [6 3]] (walk-by-steps chess-board queen [2 3] [1 0] is-single-step))))))
+                    ))
+
+(deftest test-valid-moves
+    (let [chess-board (setup-chess-board)]
+        (testing "Checks the valid moves for the king from a given coordinates."
+            (testing "Checks for valid moves for a king in the left-bottom corner."
+                (is (= '[] (get-valid-moves chess-board [0 4]))))
+            (testing "Checks for valid moves for a king in the board center."
+                (let 
+                    [king (get-in chess-board [0 4])
+                     prepared-board (assoc-in chess-board [4 4] king)]
+                    (is (= '[[3 3] [4 3] [5 3] [3 4] [5 4] [3 5] [4 5] [5 5]] (get-valid-moves prepared-board [4 4]))))))))
