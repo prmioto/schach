@@ -2,24 +2,36 @@
 
 (defn abs [x] (if (>= x 0) x (* x -1)))
 
+(defn to-upper [s] (.toUpperCase s))
+(defn to-lower [s] (.toLowerCase s))
+
 (defn char-to-int [char-value base-char]
     (- (int char-value) (int base-char)))
+
+(defn int-to-char [int-value base-char]
+    (char (+ int-value (int base-char))))
+
+(defn is-algebric-position? [value] (string? value))
+(defn are-coordinates? [value] (vector? value))
 
 (def file-base-char \a)
 (def rank-base-char \1)
     
 (defn from-algebric-to-coordinates [algebric-position]
     (let [[file-char rank-char] (vec algebric-position)]
-        ;(println "x" file-char rank-char)
         [(char-to-int rank-char rank-base-char) (char-to-int file-char file-base-char)]))
 
+(defn from-coordinates-to-algebric [coordinates]
+    (let [[rank file] coordinates]
+        (str (int-to-char file file-base-char) (int-to-char rank rank-base-char))))
+        
 (defn create-empty-square [color]
     {:color color :piece nil})
     
-(defn create-rank [index width]
+(defn create-rank [rank-index width]
     (vec (take width 
         (map #(create-empty-square (if (zero? (mod % 2)) :dark :light))
-            (iterate inc (mod index 2))))))
+            (iterate inc (mod rank-index 2))))))
 
 (defn create-board
   "Creates a empty square chess board of the specified width and height."
@@ -27,7 +39,7 @@
   (vec (map #(create-rank % width) (range 0 height))))
     
 (def chess-piece-names
-    {\K :king \Q :queen \R :rook \B :bishop \N :knight \P :pawn})
+    {\K :K \Q :Q \R :R \B :B \N :N \P :P})
         
 (def chess-piece-colors
     {\w :white \b :black})
@@ -69,8 +81,8 @@
     (let 
         [from-square (get-in board from-coordinates)
          to-square (get-in board to-coordinates)
-         piece (from-square :piece)
-         number-of-moves (piece :number-of-moves)
+         piece (:piece from-square)
+         number-of-moves (:number-of-moves piece)
          updated-piece (assoc (dissoc piece :number-of-moves) :number-of-moves (inc number-of-moves))
          updated-from-square (dissoc from-square :piece)
          updated-to-square (assoc to-square :piece updated-piece)]
@@ -81,47 +93,6 @@
         from-coordinates (from-algebric-to-coordinates from-algebric-position)
         to-coordinates (from-algebric-to-coordinates to-algebric-position)]
      (move-piece-by-coordinates board from-coordinates to-coordinates)))
-
-(defmulti get-possible-moves (fn [piece coordinates height width] (:name piece)))
-(defmethod get-possible-moves :king [piece coordinates height width]
-    (let [[x y] coordinates]
-        (filter (fn [[x y]] (and (>= x 0) (>= y 0) (< x width) (< y height)))
-            (for [dx [-1 0 1] dy [-1 0 1] :when (not= 0 dx dy)] 
-                [(+ dx x) (+ dy y)]))))
-(defmethod get-possible-moves :queen [piece coordinates height width]
-    (let [[x y] coordinates]
-        (reduce concat
-            (for [dx [-1 0 1] dy [-1 0 1] :when (not= 0 dx dy)]
-                (loop [x (+ dx x) y (+ dy y) coll []]
-                    (if (or (< x 0) (< y 0) (>= x width) (>= y height))
-                        coll
-                        (recur (+ dx x) (+ dy y) (conj coll [x y]))))))))                
-(defmethod get-possible-moves :bishop [piece coordinates height width]
-    (let [[x y] coordinates]
-        (reduce concat
-            (for [dx [-1 0 1] dy [-1 0 1] :when (and (not= 0 dx) (not= 0 dy))]
-                (loop [x (+ dx x) y (+ dy y) coll []]
-                    (if (or (< x 0) (< y 0) (>= x width) (>= y height))
-                        coll
-                        (recur (+ dx x) (+ dy y) (conj coll [x y]))))))))    
-(defmethod get-possible-moves :rook [piece coordinates height width]
-    (let [[x y] coordinates]
-        (reduce concat
-            (for [dx [-1 0 1] dy [-1 0 1] :when (and (not= 0 dx dy) (or (= 0 dx) (= 0 dy)))]
-                (loop [x (+ dx x) y (+ dy y) coll []]
-                    (if (or (< x 0) (< y 0) (>= x width) (>= y height))
-                        coll
-                        (recur (+ dx x) (+ dy y) (conj coll [x y]))))))))
-(defmethod get-possible-moves :pawn [piece coordinates height width]
-    (let [[x y] coordinates]
-        (filter (fn [[x y]] (and (>= x 0) (>= y 0) (< x width) (< y height)))
-                (for [dx [-1 0 1] dy [1 2] :when (or (not= dy 2) (and (zero? dx) (= y 1)))] 
-                    [(+ dx x) (+ dy y)]))))
-(defmethod get-possible-moves :knight [piece coordinates height width]
-    (let [[x y] coordinates]
-        (filter (fn [[x y]] (and (>= x 0) (>= y 0) (< x width) (< y height)))
-            (for [dx [-2 -1 1 2] dy [-2 -1 1 2] :when (not= (abs dx) (abs dy))]
-                    [(+ dx x) (+ dy y)]))))
 
 (defn is-opponent? [piece-to-move piece-to-check]
     (not= (:color piece-to-move) (:color piece-to-check)))
@@ -150,8 +121,8 @@
                         (conj moves to-coordinates) 
                         (= :opponent occupant-type) 
                         (inc number-of-steps)))))))
-
-(defn get-moves [board from-coordinates possible-steps is-single-step]
+                        
+(defn get-all-moves [board from-coordinates possible-steps is-single-step]
     (let 
         [piece-to-move (:piece (get-in board from-coordinates))
          no-piece-to-move (nil? piece-to-move)]
@@ -160,41 +131,91 @@
             []
             (vec (reduce
                 (fn [moves step] 
-                    (println moves step)
-                    (into moves (walk-by-steps board piece-to-move from-coordinates step true))) 
+                    ;(println moves step)
+                    (into moves (walk-by-steps board piece-to-move from-coordinates step is-single-step))) 
                 []
-                possible-steps)))))                        
-                        
+               possible-steps)))))                        
+
+(defn get-king-steps []
+    (for [dx [-1 0 1] dy [-1 0 1] :when (not= 0 dx dy)] [dy dx]))
+
+(defn get-queen-steps []
+    (for [dx [-1 0 1] dy [-1 0 1] :when (not= 0 dx dy)] [dy dx]))
+        
+(defn get-rook-steps []
+    (for [dx [-1 0 1] dy [-1 0 1] :when (and (not= 0 dx dy) (or (= 0 dx) (= 0 dy)))] [dy dx]))
+
+(defn get-bishop-steps []
+    (for [dx [-1 0 1] dy [-1 0 1] :when (and (not= 0 dx) (not= 0 dy))] [dy dx]))
+
+(defn get-knight-steps []
+    (for [dx [-2 -1 1 2] dy [-2 -1 1 2] :when (not= (abs dx) (abs dy))] [dy dx]))
+
+(defn get-pawn-steps []
+    (for [dx [-1 0 1] dy [1 2]] [dy dx]))
+ 
 (defmulti get-valid-moves (fn [board from-coordinates] (-> (get-in board from-coordinates) :piece :name)))
 (defmethod get-valid-moves :default [board from-coordinates]
-    (println :default)
+    ;(println :default)
     ())
-(defmethod get-valid-moves :king [board from-coordinates]
-    (println :king)
+(defmethod get-valid-moves :K [board from-coordinates]
+    ;(println :K)
     (let 
-       [king-possible-steps (for [dx [-1 0 1] dy [-1 0 1] :when (not= 0 dx dy)] [dy dx])
+       [steps (get-king-steps)
         is-single-step true]
-        (get-moves board from-coordinates king-possible-steps is-single-step)))
-                    
+        (get-all-moves board from-coordinates steps is-single-step)))
+(defmethod get-valid-moves :Q [board from-coordinates]
+    ;(println :Q)
+    (let 
+       [steps (get-queen-steps)
+        is-single-step false]
+        (get-all-moves board from-coordinates steps is-single-step)))
+(defmethod get-valid-moves :R [board from-coordinates]
+    ;(println :R)
+    (let 
+       [steps (get-rook-steps)
+        is-single-step false]
+        (get-all-moves board from-coordinates steps is-single-step)))
+(defmethod get-valid-moves :B [board from-coordinates]
+    ;(println :B)
+    (let 
+       [steps (get-bishop-steps)
+        is-single-step false]
+        (get-all-moves board from-coordinates steps is-single-step)))
+(defmethod get-valid-moves :N [board from-coordinates]
+    ;(println :N)
+    (let 
+       [steps (get-knight-steps)
+        is-single-step true]
+        (get-all-moves board from-coordinates steps is-single-step)))
+(defmethod get-valid-moves :P [board from-coordinates]
+    ;(println :P)
+    (let 
+       [[y x] from-coordinates
+        steps (remove 
+            (fn [[dy dx]] (and (= dy 2) (or (not= dx 0) (not= y 1)))) 
+            (get-pawn-steps))
+        is-single-step true]
+        (get-all-moves board from-coordinates steps is-single-step)))
+        
 (defn print-board [board]
     (println
-        (reduce (fn [rank-str rank] 
-            (str rank-str
-                (reduce (fn [square-str square] 
-                    (let 
-                        [is-dark (= (square :color) :dark)
-                         piece (square :piece)
-                         is-empty (nil? piece)
-                         is-black (= (if (true? is-empty) :none (piece :color)) :black)
-                         piece-name (if (true? is-empty) "" (str (piece :name)))]
-                        (str square-str 
-                            (format "%s%2.2s%3.3s%s" 
-                                (if (true? is-dark) "[" "(") 
-                                ;(if (true? is-empty) " " (if (true? is-black) "+" "_")) 
-                                (if (true? is-empty) "" (piece :number-of-moves))
-                                (if (true? is-empty) "" (if (true? is-black) (.toUpperCase piece-name) (.toLowerCase piece-name)))
-                                ;(if (true? is-empty) " " (if (true? is-black) "+" "_")) 
-                                (if (true? is-dark) "]" ")"))
-                           "|")))    
-                    "" rank) "\n")) 
+        (reduce 
+            (fn [board-str rank] 
+                (str board-str
+                    (reduce (fn [rank-str square] 
+                        (let 
+                            [is-dark (= (:color square) :dark)
+                             piece (:piece square)
+                             is-empty (nil? piece)
+                             is-black (= (:color piece) :black)
+                             piece-name (if (true? is-empty) "" (name (:name piece)))
+                             piece-rep (if (true? is-black) (partial to-upper) (partial to-lower))]
+                            (str rank-str 
+                                (format "%s %1s %s" 
+                                    (if (true? is-dark) "[" " ") 
+                                    (piece-rep piece-name)
+                                    (if (true? is-dark) "]" " "))
+                               "|")))    
+                    "|" rank) "\n")) 
             "" (reverse board))))
