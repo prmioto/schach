@@ -47,7 +47,7 @@
                         (is (= [] 
                             (get-all-moves 
                                 chess-board 
-                                (from-algebric-to-coordinates "e1") 
+                                (from-algebric-to-coords "e1") 
                                 possible-king-steps true))))
                     (testing "Check for possible moves for a king in front of the pawns rank."
                         (let [prepared-board (move-piece chess-board "e1" "e3")]
@@ -55,7 +55,7 @@
                             (is (= [[2 3] [2 5] [3 3] [3 4] [3 5]] 
                                 (get-all-moves 
                                     prepared-board 
-                                    (from-algebric-to-coordinates "e3") 
+                                    (from-algebric-to-coords "e3") 
                                     possible-king-steps true)))))
                     (testing "Check for possible moves for a free king"
                         (let [prepared-board (move-piece chess-board "e1" "e4")]    
@@ -63,7 +63,7 @@
                             (is (= [[2 3] [2 4] [2 5] [3 3] [3 5] [4 3] [4 4] [4 5]] 
                                 (get-all-moves 
                                     prepared-board 
-                                    (from-algebric-to-coordinates "e4") 
+                                    (from-algebric-to-coords "e4") 
                                     possible-king-steps true)))))))
         (testing "Check the moves given the possible steps that are possible for a queen."
                 (let [possible-queen-steps [[-1 -1] [-1 0] [-1 1] [0 -1] [0 1] [1 -1] [1 0] [1 1]]]
@@ -75,14 +75,14 @@
                                     [3 1] [4 2] [5 3] [6 4]] ; dx=1 and dy=1 
                                 (get-all-moves 
                                     prepared-board 
-                                    (from-algebric-to-coordinates "a3") 
-                                    possible-queen-steps false)))))))))                
+                                    (from-algebric-to-coords "a3") 
+                                    possible-queen-steps)))))))))                
                     
 (deftest test-valid-moves
     (let [chess-board (setup-chess-board)]
         (testing "Check if there is no valid moves for an empty square."
             (is (= [] (get-valid-moves chess-board [4 4]))))   
-        (testing "Check the valid moves for the king from a given coordinates."
+        (testing "Check the valid moves for the king from a given coords."
             (testing "Check for valid moves for a locked king in the initial position."
                 (is (= [] (get-valid-moves chess-board [0 4]))))
             (testing "Check for valid moves for a free king in position a5."
@@ -90,7 +90,7 @@
                     [prepared-board (move-piece chess-board "e1" "e5")]
                     (is (= [[3 3] [4 3] [5 3] [3 4] [5 4] [3 5] [4 5] [5 5]] 
                         (get-valid-moves prepared-board [4 4]))))))
-        (testing "Check the valid moves for the queen from a given coordinates."
+        (testing "Check the valid moves for the queen from a given coords."
             (testing "Check for valid moves for a queen in the center of the board."
                 (let 
                     [prepared-board (move-piece chess-board "d1" "d5")]
@@ -104,7 +104,7 @@
                             [4 4] [4 5] [4 6] [4 7] ;dx=1 and dy=0
                             [5 4] [6 5]] ;dx=1 and dy=1 
                         (get-valid-moves prepared-board [4 3]))))))                     
-        (testing "Check the valid moves for the bishop from a given coordinates."
+        (testing "Check the valid moves for the bishop from a given coords."
             (testing "Check for valid moves for a bishop in the center of the board."
                 (let 
                     [prepared-board (move-piece chess-board "c1" "c4")]
@@ -114,7 +114,7 @@
                             [2 3]  ; dx=1 and dy=-1
                             [4 3] [5 4] [6 5]] ;dx=1 and dy=1 
                         (get-valid-moves prepared-board [3 2]))))))
-        (testing "Check the valid moves for the rook from a given coordinates."
+        (testing "Check the valid moves for the rook from a given coords."
             (testing "Check for valid moves for a rook in the center of the board."
                 (let 
                     [prepared-board (move-piece chess-board "a1" "b5")]
@@ -124,7 +124,7 @@
                             [5 1] [6 1] ; dx=0 and dy=1
                             [4 2] [4 3] [4 4] [4 5] [4 6] [4 7]] ; dx=1 and dy=0
                         (get-valid-moves prepared-board [4 1]))))))
-        (testing "Check the valid moves for the knight from a given coordinates."
+        (testing "Check the valid moves for the knight from a given coords."
             (testing "Check for valid moves for a knight in front the rank of the pawns."
                 (let 
                     [prepared-board (move-piece chess-board "g1" "f3")]
@@ -137,7 +137,7 @@
                     ;(print-board prepared-board)
                     (is (= [[4 3] [6 3] [3 4] [7 4] [3 6] [7 6] [4 7] [6 7]]
                         (get-valid-moves prepared-board [5 5]))))))
-        (testing "Check the valid moves for the pawn from a given coordinates."
+        (testing "Check the valid moves for the pawn from a given coords."
             (testing "Check for valid moves for a pawn in the initial position."
                 (is (= [[2 2] [2 3] [3 3] [2 4]]
                     (get-valid-moves chess-board [1 3])))))
@@ -154,11 +154,11 @@
              from-position "a1"
              to-position "c4"
              move (str piece-to-move from-position "-" to-position)
-             from-coordinates (from-algebric-to-coordinates from-position)
-             to-coordinates (from-algebric-to-coordinates to-position)
-             piece-to-move (:piece (get-in board from-coordinates))
+             from-coords (from-algebric-to-coords from-position)
+             to-coords (from-algebric-to-coords to-position)
+             piece-to-move (:piece (get-in board from-coords))
              new-board (apply-move board move)
-             moved-piece (:piece (get-in new-board to-coordinates))]
+             moved-piece (:piece (get-in new-board to-coords))]
         (print-board new-board)
         (is (= piece-to-move (assoc moved-piece :number-of-moves 0)))
         (is (= 1 (:number-of-moves moved-piece))))))

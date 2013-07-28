@@ -3,15 +3,15 @@
             [com.schach.board :refer :all]
             [clojure.pprint :refer :all]))
 
-(deftest test-convertion-from-algebric-to-coordinates
-    (testing "Conversion from algebric chess notation to coordinates."
-        (is (= [0 0] (from-algebric-to-coordinates "a1")))
-        (is (= [7 7] (from-algebric-to-coordinates "h8")))))
+(deftest test-convertion-from-algebric-to-coords
+    (testing "Conversion from algebric chess notation to coords."
+        (is (= [0 0] (from-algebric-to-coords "a1")))
+        (is (= [7 7] (from-algebric-to-coords "h8")))))
 
-(deftest test-convertion-from-coordinates-to-algebric
-    (testing "Conversion from coordinates to algebric chess notation."
-        (is (= "a1" (from-coordinates-to-algebric [0 0])))
-        (is (= "h8" (from-coordinates-to-algebric [7 7])))))
+(deftest test-convertion-from-coords-to-algebric
+    (testing "Conversion from coords to algebric chess notation."
+        (is (= "a1" (from-coords-to-algebric [0 0])))
+        (is (= "h8" (from-coords-to-algebric [7 7])))))
         
 (deftest test-rank-color-assignment
     (let [width 8]
@@ -51,17 +51,14 @@
                     (is (= :light (:color (first odd-rank))))
                     (is (= :dark (:color (last odd-rank)))))))))
 
-(deftest test-replace-piece
-    (testing "Check if a single piece is replaced in the board from a specified position."
-        (let [
-            height 8 width 8 
-            new-board (create-board height width)
-            coordinates [0 0]
-            old-piece {:name :K :color :black}
-            new-piece {:name :Q :color :white}
-            square (get-in new-board coordinates)
-            prepared-board (assoc-in new-board coordinates (assoc square :piece old-piece))]
-            (is (= new-piece (:piece (get-in (replace-piece prepared-board coordinates new-piece) coordinates)))))))
+(deftest test-put-and-get-piece-from-board
+    (testing "Check if a single piece is assigned to a specified position in the board."
+        (let [height 8 width 8 
+              new-board (create-board height width)
+              algebric-position "a1"
+              piece {:name :K :color :black}
+              updated-board (put-piece board piece algebric-position)]
+            (is (= piece (get-piece updated-board algebric-position))))))
 
 (deftest test-move-piece
     (testing "Check if a piece is moved to the specified location."
@@ -69,11 +66,9 @@
             [board (setup-chess-board)
              from-position "a1"
              to-position "c4"
-             from-coordinates (from-algebric-to-coordinates from-position)
-             to-coordinates (from-algebric-to-coordinates to-position)
-             piece-to-move ((get-in board from-coordinates) :piece)
+             piece-to-move (get-piece board from-position)
              new-board (move-piece board from-position to-position)
-             moved-piece ((get-in new-board to-coordinates) :piece)]
+             moved-piece (get-piece new-board to-position)]
         (print-board new-board)
         (is (= piece-to-move (assoc moved-piece :number-of-moves 0)))
         (is (= 1 (moved-piece :number-of-moves))))))
