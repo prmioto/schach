@@ -20,44 +20,52 @@
           file-char (int-to-char file file-base-char)
           rank-char (int-to-char rank rank-base-char)]
         (str file-char rank-char)))
-        
-(defn create-empty-square [color]
-    {:color color :piece nil})
-    
+
+(defrecord Square [color piece])
+(defrecord Piece [name color number-of-moves])
+
 (defn create-rank [rank width]
     (vec (take width 
-        (map #(create-empty-square (if (even? %) :dark :light))
+        (map #(Square. (if (even? %) :dark :light) nil)
             (iterate inc (mod rank 2))))))
-
+            
 (defn create-board
   "Creates a empty square chess board of the specified width and height."
   [height width]
   (vec (map #(create-rank % width) (range 0 height))))
 
-(defn create-piece [name color]
-    {:name name :color color :number-of-moves 0})
-
-(defmulti get-piece (fn [board position] (type position)))
-(defmethod get-piece Sequential [board coords]
+(defmulti get-piece 
+    "Retrieves a piece from a give location specified  
+     either by coordinates or by algebric notation."
+    (fn [board position] (type position)))
+(defmethod get-piece  Sequential [board coords]
     (let [square (get-in board coords)]
+        ;(println coords square)
         (:piece square)))
 (defmethod get-piece String [board algebric-position]
     (let [coords (from-algebric-to-coords algebric-position)]
+        ;(println algebric-position)
         (get-piece board coords)))
 
-(defmulti put-piece (fn [board piece position] (type position)))
+(defmulti put-piece 
+    "Puts a piece in a give location specified either by 
+     coordinates or by algebric notation."
+    (fn [board piece position] (type position)))
 (defmethod put-piece Sequential [board piece coords]
     (let 
         [square (get-in board coords)
          new-square (assoc square :piece piece)]
-        (println square new-square)
+        ;(println square new-square)
         (assoc-in board coords new-square)))
 (defmethod put-piece String [board piece algebric-position]
     (let [coords (from-algebric-to-coords algebric-position)]
-        (println algebric-position coords)
+        ;(println algebric-position coords)
         (put-piece board piece coords)))
 
-(defmulti remove-piece (fn [board position] (type position)))        
+(defmulti remove-piece 
+    "Removes a piece from the board located in a location
+     specified either by coordinates or by algebric location."
+    (fn [board position] (type position)))        
 (defmethod remove-piece Sequential [board coords]
     (let 
         [square (get-in board coords)
@@ -67,25 +75,50 @@
     (let [coords (from-algebric-to-coords algebric-position)]
         (remove-piece board coords)))
 
-(defn move-piece [board from-algebric-position to-algebric-position]
+(defmulti move-piece
+    "Moves a piece from one location to another. Both specified either
+    by coordinates or by algebric notation."
+    (fn [board from-position to-position] [(type from-position) (type to-position)]))
+(defmethod move-piece [Sequential Sequential] [board from-coords to-coords]
     (let 
-        [from-coords (from-algebric-to-coords from-algebric-position)
-         to-coords (from-algebric-to-coords to-algebric-position)
-         piece (get-piece board from-coords)
+        [piece (get-piece board from-coords)
          number-of-moves (:number-of-moves piece)
          updated-piece (assoc piece :number-of-moves (inc number-of-moves))]
         (put-piece (remove-piece board from-coords) updated-piece to-coords)))
+(defmethod move-piece [String String] [board from-algebric-position to-algebric-position]
+    (let 
+        [from-coords (from-algebric-to-coords from-algebric-position)
+         to-coords (from-algebric-to-coords to-algebric-position)]
+        (move-piece board from-coords to-coords)))
 
-(defn is-opponent? [piece-to-move piece-to-check]
-    (not= (:color piece-to-move) (:color piece-to-check)))
-
-(defn get-occupant-type [piece-to-move occuppant-piece] 
+(defn populate-board 
+    "Populates a board by a given a collection of piece information 
+    represented by a vector that contains the piece name, its color and
+    location in algebric notation."
+    [board piece-list]
+    ;(println board piece-list)
+    (reduce 
+        (fn [board piece-info]
+            ;(println "piece-info" piece-info)
+            (let 
+                [[name color algebric-position] piece-info
+                 new-piece (Piece. name color 0)]
+                 ;(println color name algebric-position new-piece)
+                (put-piece board new-piece algebric-position)))
+        board
+        piece-list))
+ 
+(defn get-collaboration-type
+    "Finds out if a piece is an opponent or not."
+    [piece-to-move target-piece] 
     (cond
-        (nil? occuppant-piece) :empty-square
-        (is-opponent? piece-to-move occuppant-piece) :opponent
-        (true? true) :teammate))
+        (nil? target-piece) nil
+        (not= (:color piece-to-move) (:color target-piece)) :opponent
+        :else :teammate))
 
-(defn walk-by-steps [board piece-to-move from-coords step is-single-step]
+(defn walk-by-steps 
+    "Finds the available positions for a piece in the board given a direction."  
+    [board piece-to-move from-coords step is-single-step]
     (let [height (count board) width (count (board 0))]
         (loop 
             [to-coords (vec (map + from-coords step)) 
@@ -94,17 +127,17 @@
              number-of-steps 0]
            (let 
                 [occupant-piece (get-piece board to-coords)
-                 occupant-type (get-occupant-type piece-to-move occupant-piece)]
-                (println "walk-by-steps" to-coords moves opponent-found occupant-type number-of-steps)
+                 collaboration-type (get-collaboration-type piece-to-move occupant-piece)]
+                ;(println "walk-by-steps" to-coords moves opponent-found occupant-type number-of-steps)
                 (if (or 
                         (and is-single-step (= 1 number-of-steps))
                         (true? (some #(< % 0) to-coords))
                         (true? (some true? (map >= to-coords [height width])))
-                        (= :teammate occupant-type)
+                        (= :teammate collaboration-type)
                         (true? opponent-found))
                     moves
                     (recur 
                         (vec (map + to-coords step))
                         (conj moves to-coords) 
-                        (= :opponent occupant-type) 
+                        (= :opponent collaboration-type) 
                         (inc number-of-steps)))))))

@@ -15,7 +15,7 @@
     [c]
     (if (is-upper? c) :black :white))
     
-(defn parse-piece-str 
+(defn parse-piece-positioning
     "Parses a string that represents a piece in a given algebric position. 
     The first letter is the name of the piece. 
     If the letter is uppercase, the piece is black. Otherwise, the piece is white."
@@ -26,22 +26,16 @@
          color (map-piece-color (first name-symbol))]
         [name color algebric-position]))
 
-(defn populate-board 
-    "Populates a board by associating a collection of pieces 
-    represented by a vector of strings. Each string that contains
-    the name of the piece, its color and its location in algebric notation."
+(defn populate-chess-board 
     [board pieces]
-    ;(println board pieces)
-    (reduce 
-        (fn [board piece-str]
-            ;(println "piece" piece-str)
-            (let 
-                [[name color algebric-position] (parse-piece-str piece-str)
-                 new-piece (create-piece name color)]
-                 ;(println color name algebric-position new-piece)
-                (put-piece board new-piece algebric-position)))
-        board
-        pieces))
+    (let 
+        [piece-list 
+            (reduce 
+                (fn [piece-list piece-str] 
+                    (conj piece-list (parse-piece-positioning piece-str)))
+                []
+                pieces)]
+        (populate-board board piece-list)))
 
 (defn setup-chess-board 
     "Fill out a board with the standard chess pieces."
@@ -49,7 +43,7 @@
     (let 
         [height 8 width 8
          board (create-board height width)]
-        (populate-board board 
+        (populate-chess-board board 
             ["ra1" "nb1" "bc1" "qd1" "ke1" "bf1" "ng1" "rh1"
              "pa2" "pb2" "pc2" "pd2" "pe2" "pf2" "pg2" "ph2"
              "Ra8" "Nb8" "Bc8" "Qd8" "Ke8" "Bf8" "Ng8" "Rh8"
@@ -64,7 +58,7 @@
         (let 
             [piece-to-move (get-piece board from-coords)
              no-piece-to-move (nil? piece-to-move)]
-            (println "get-all-moves1" from-coords piece-to-move possible-steps is-single-step)
+            ;(println "get-all-moves1" from-coords piece-to-move possible-steps is-single-step)
             (if (true? no-piece-to-move)
                 []
                 (vec (reduce
@@ -82,7 +76,7 @@
                     possible-steps)))))
     ([board from-coords possible-steps]
         (let [is-single-step false]
-            (println "get-all-moves2" from-coords possible-steps is-single-step)
+            ;(println "get-all-moves2" from-coords possible-steps is-single-step)
             (get-all-moves board from-coords possible-steps is-single-step))))
 
 (defmulti get-valid-moves 

@@ -6,26 +6,27 @@
             [com.schach.print-board :refer :all]
             [clojure.pprint :refer :all]))
 
-(deftest test-parse-piece-str
+(deftest test-parse-piece-positioning
     (testing "Check if parsing algebric notation with piece indication are done correctly."
-        (is (= [:P :black "a1"] (parse-piece-str "Pa1")))
-        (is (= [:K :white "h8"] (parse-piece-str "kh8")))))
+        (is (= [:P :black "a1"] (parse-piece-positioning "Pa1")))
+        (is (= [:K :white "h8"] (parse-piece-positioning "kh8")))))
             
-(deftest test-populated-board
-    (testing "Assure that the board is correctly populated."
+(deftest test-populate-chess-board
+    (testing "Assure that a chess board is correctly populated by the given piece positioning string list."
         (let [height 8 width 8 board (create-board height width)]
-            (testing "Assign a white king in the position a1."
-                (let [populated-board (populate-board board ["ka1"])]
-                ;(print-board populated-board)
-                (is (= :K (-> (get-in populated-board [0 0]) :piece :name)))))
-            (testing "Setup the white pieces."
-                (let [populated-board (populate-board board 
-                    ["ra1" "nb1" "bc1" "qd1" "ke1" "bf1" "ng1" "rh1"
-                     "pa2" "pb2" "pc2" "pd2" "pe2" "pf2" "pg2" "ph2"])]
-                ;(print-board populated-board)
-                (is (= :Q (-> (get-in populated-board [0 3]) :piece :name)))
-                (is (= :R (-> (get-in populated-board [0 7]) :piece :name)))
-                (is (= :P (-> (get-in populated-board [1 7]) :piece :name))))))))
+            (testing "Assign a black king in the position a1."
+                (let [updated-board (populate-chess-board board ["Ka1"])]
+                ;(print-board updated-board)
+                    (is (= [:K :black 0] ((juxt :name :color :number-of-moves) (get-piece updated-board "a1"))))))
+            (testing "Check if the white pieces are correctly located in the board."
+                (let [updated-board 
+                        (populate-chess-board board 
+                            ["ra1" "nb1" "bc1" "qd1" "ke1" "bf1" "ng1" "rh1"
+                             "pa2" "pb2" "pc2" "pd2" "pe2" "pf2" "pg2" "ph2"])]
+                ;(print-board updated-board)
+                    (is (= [:Q :white 0] ((juxt :name :color :number-of-moves) (get-piece updated-board "d1"))))
+                    (is (= [:R :white 0] ((juxt :name :color :number-of-moves) (get-piece updated-board "h1"))))
+                    (is (= [:P :white 0] ((juxt :name :color :number-of-moves) (get-piece updated-board "a2")))))))))
 
 (deftest test-setup-chess-board
     (testing "Setup all the white and black pieces."
@@ -159,7 +160,7 @@
              piece-to-move (:piece (get-in board from-coords))
              new-board (apply-move board move)
              moved-piece (:piece (get-in new-board to-coords))]
-        (print-board new-board)
+        ;(print-board new-board)
         (is (= piece-to-move (assoc moved-piece :number-of-moves 0)))
         (is (= 1 (:number-of-moves moved-piece))))))
 
@@ -170,7 +171,7 @@
                 (let
                     [moves ["Pe2-e3...Pe7-e5"]
                      new-board (play-moves board moves)]
-                    (print-board new-board)
+                    ;(print-board new-board)
                     (is (true? (is-correct-piece? new-board "e3" \P)))
                     (is (true? (is-correct-piece? new-board "e5" \P)))))
             (testing "Check if the scholar move is played correctly."
@@ -181,7 +182,7 @@
                          "Qd1-h5...Ng8-f6"
                          "Qh5xf7++"]
                      new-board (play-moves board moves)]
-                    (print-board new-board)
+                    ;(print-board new-board)
                     (is (true? (is-correct-piece? new-board "f7" \Q)))
                     (is (true? (is-correct-piece? new-board "c4" \B)))))
                     )))

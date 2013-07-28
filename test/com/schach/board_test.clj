@@ -1,7 +1,10 @@
-(ns com.schach.chess-test
-  (:require [clojure.test :refer :all]
+(ns com.schach.board-test
+    (:require 
+            [clojure.test :refer :all]
             [com.schach.board :refer :all]
-            [clojure.pprint :refer :all]))
+            [com.schach.print-board :refer :all]
+            [clojure.pprint :refer :all])
+    (:import [com.schach.board Piece]))
 
 (deftest test-convertion-from-algebric-to-coords
     (testing "Conversion from algebric chess notation to coords."
@@ -51,53 +54,80 @@
                     (is (= :light (:color (first odd-rank))))
                     (is (= :dark (:color (last odd-rank)))))))))
 
-(deftest test-put-and-get-piece-from-board
+(deftest test-put-and-get-piece-from-to-board
     (testing "Check if a single piece is assigned to a specified position in the board."
-        (let [height 8 width 8 
-              new-board (create-board height width)
-              algebric-position "a1"
-              piece {:name :K :color :black}
-              updated-board (put-piece board piece algebric-position)]
+        (let 
+            [height 8 width 8 
+             board (create-board height width)
+             algebric-position "a1"
+             piece (Piece. :king :black 0)
+             updated-board (put-piece board piece algebric-position)]
             (is (= piece (get-piece updated-board algebric-position))))))
 
 (deftest test-move-piece
     (testing "Check if a piece is moved to the specified location."
         (let 
-            [board (setup-chess-board)
+            [height 8 width 8 
+             board (create-board height width)
              from-position "a1"
              to-position "c4"
-             piece-to-move (get-piece board from-position)
-             new-board (move-piece board from-position to-position)
-             moved-piece (get-piece new-board to-position)]
-        (print-board new-board)
-        (is (= piece-to-move (assoc moved-piece :number-of-moves 0)))
-        (is (= 1 (moved-piece :number-of-moves))))))
-                        
-(deftest test-is-opponent
-    (testing "Assure that two pieces of the same color are not opponents."
-        (is (false? (is-opponent? {:name :K :color :white} {:name :Q :color :white}))))
-    (testing "Assure that two pieces of the distinct colors are opponents."
-        (is (is-opponent? {:name :K :color :white} {:name :B :color :black}))))
+             piece-to-move (Piece. :king :white 0)
+             prepared-board (put-piece board piece-to-move from-position)
+             updated-board (move-piece prepared-board from-position to-position)
+             moved-piece (get-piece updated-board to-position)]
+        ;(print-board updated-board)
+        (is (= [:king :white 1] ((juxt :name :color :number-of-moves) moved-piece))))))
 
-(deftest test-get-square-ocuppant-type
+(deftest test-populate-board
+    (testing "Assure that the board is correctly populated."
+        (let 
+            [height 8 width 8 
+             board (create-board height width)]
+            (testing "Assign a white king in the position a1."
+                (let [updated-board (populate-board board [[:king :white "a1"]])]
+                    (print-board updated-board)
+                    (is (= [:king :white 0] ((juxt :name :color :number-of-moves) (get-piece updated-board "a1"))))))
+            (testing "Setup the white pieces."
+                (let [updated-board 
+                        (populate-board board 
+                            [[:queen :white "d1"]
+                             [:rook :black "h1"]
+                             [:pawn :white "a2"]])]
+                    (print-board updated-board)
+                    (is (= [:queen :white 0] ((juxt :name :color :number-of-moves) (get-piece updated-board "d1"))))
+                    (is (= [:rook :black 0] ((juxt :name :color :number-of-moves) (get-piece updated-board "h1"))))
+                    (is (= [:pawn :white 0] ((juxt :name :color :number-of-moves) (get-piece updated-board "a2")))))))))
+        
+(deftest test-get-collaboration-type
+    (let 
+        [white-piece (Piece. :K :white 0) 
+         another-white-piece (Piece. :P :white 0)
+         black-piece (Piece. :Q :black 0)]
     (testing "Assure that the square is empty."
-        (is (= :empty-square 
-            (get-square-occupant-type 
-                {:name :K :color :white} 
-                {:color :dark :piece nil}))))
+        (is (nil? (get-collaboration-type white-piece nil))))
     (testing "Assure that the square has a teammate."
         (is (= :teammate 
-            (get-square-occupant-type
-                {:name :K :color :white} 
-                {:color :dark :piece {:name :P :color :white}}))))
+            (get-collaboration-type white-piece another-white-piece))))
     (testing "Assure that the square has a opponent."
         (is (= :opponent 
-            (get-square-occupant-type 
-                {:name :K :color :white} 
-                {:color :dark :piece {:name :P :color :black}})))))
-                    
+            (get-collaboration-type white-piece black-piece))))))
+
+(defn generate-rank [rank piece-list color]
+    (let [width (count piece-list)]
+        (vec (map #(vector %1 %2 %3)
+            piece-list 
+           (repeat width color) 
+           (take width (map #(str (char %) rank) (iterate inc (int \a))))))))
+           
 (deftest test-walk-by-steps
-    (let [chess-board (setup-chess-board)]
+    (let
+        [height 8 width 8 
+         piece-list (vec (concat
+                        (generate-rank "8" [:r :n :b :q :k :b :n :r] :black)
+                        (generate-rank "7" [:p :p :p :p :p :p :p :p] :black)
+                        (generate-rank "2" [:p :p :p :p :p :p :p :p] :white)
+                        (generate-rank "1" [:r :n :b :q :k :b :n :r] :white)))
+         chess-board (populate-board (create-board height width) piece-list)]
         (testing "Check the steps for a king walking to a specified direction from its actual position."
             (let [king {:name :K :color :white} is-single-step true]
                 (testing "Check the steps for a locked king walking to its right direction."
